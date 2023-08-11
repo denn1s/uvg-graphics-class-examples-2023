@@ -12,8 +12,6 @@
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
-const int SCREEN_WIDTH = 800.0f;
-const int SCREEN_HEIGHT = 800.0f;
 
 SDL_Renderer* renderer;
 
@@ -124,6 +122,7 @@ void render(std::vector<glm::vec3> vertices) {
         transformedVertices.push_back(transformedVertex);
     }
 
+
     // 2. Primitive Assembly
     // transformedVertices -> triangles
     std::vector<std::vector<glm::vec3>> triangles = primitiveAssembly(transformedVertices);
@@ -170,10 +169,9 @@ glm::mat4 createViewMatrix() {
     );
 }
 
-
-glm::vec4 createProjectionMatrix() {
+glm::mat4 createProjectionMatrix() {
   float fovInDegrees = 45.0f;
-  float aspectRatio = SCREEN_WIDTH / SCREEN_HEIGHT;
+  float aspectRatio = WINDOW_WIDTH / WINDOW_HEIGHT;
   float nearClip = 0.1f;
   float farClip = 100.0f;
 
@@ -184,7 +182,7 @@ glm::mat4 createViewportMatrix() {
     glm::mat4 viewport = glm::mat4(1.0f);
 
     // Scale
-    viewport = glm::scale(viewport, glm::vec3(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f, 0.5f));
+    viewport = glm::scale(viewport, glm::vec3(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f, 0.5f));
 
     // Translate
     viewport = glm::translate(viewport, glm::vec3(1.0f, 1.0f, 0.5f));
@@ -204,19 +202,13 @@ int main() {
         SDL_RENDERER_ACCELERATED
     );
 
-    SDL_RenderSetLogicalSize(renderer, 400, 400);
-
     bool running = true;
     SDL_Event event;
 
     std::vector<glm::vec3> vertices = {
-        {150.0f, 100.0f, 0.0f},
-        {200.0f, 200.0f, 0.0f},
-        {250.0f, 100.0f, 0.0f},
-
-        {150.0f, 100.0f, -100.0f},
-        {200.0f, 200.0f, -100.0f},
-        {250.0f, 100.0f, -100.0f}
+        {0.0f, 1.0f, 0.0f},
+        {-0.87f, -0.5f, 0.0f},
+        {0.87f,  -0.5f, 0.0f}
     };
 
     while (running) {

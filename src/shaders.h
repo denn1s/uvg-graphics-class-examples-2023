@@ -20,6 +20,6 @@ Vertex vertexShader(const Vertex& vertex, const Uniform& u) {
   };
 };
 
-Color fragmentShader(Fragment fragment) {
-  return fragment.color;
+Fragment fragmentShader(Fragment fragment) {
+  return fragment;
 };

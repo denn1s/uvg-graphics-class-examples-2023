@@ -2,6 +2,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <array>
 
 #include "fragment.h"
 #include "uniform.h"
@@ -13,6 +14,9 @@
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 1024;
+
+std::array<std::array<float, WINDOW_WIDTH>, WINDOW_HEIGHT> zbuffer;
+
 
 SDL_Renderer* renderer;
 
@@ -29,12 +33,20 @@ Color currentColor = {255, 255, 255}; // Initially set to white
 void clear() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
+
+
+    for (auto &row : zbuffer) {
+        std::fill(row.begin(), row.end(), -99999.0f);
+    }
 }
 
 // Function to set a specific pixel in the framebuffer to the currentColor
-void point(int x, int y, Color color) {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderDrawPoint(renderer, x, y);
+void point(Fragment f) {
+    if (f.position.z > zbuffer[f.position.y][f.position.x]) {
+        SDL_SetRenderDrawColor(renderer, f.color.r, f.color.g, f.color.b, f.color.a);
+        SDL_RenderDrawPoint(renderer, f.position.x, f.position.y);
+        zbuffer[f.position.y][f.position.x] = f.position.z;
+    }
 }
 
 std::vector<std::vector<Vertex>> primitiveAssembly(
@@ -60,7 +72,7 @@ void render(std::vector<glm::vec3> VBO) {
     // vertex -> trasnformedVertices
     
     std::vector<Vertex> transformedVertices;
-    
+
     for (int i = 0; i < VBO.size(); i+=2) {
         glm::vec3 v = VBO[i];
         glm::vec3 c = VBO[i+1];
@@ -96,8 +108,7 @@ void render(std::vector<glm::vec3> VBO) {
     // Fragments -> colors
 
     for (Fragment fragment : fragments) {
-        Color fragColor = fragmentShader(fragment);
-        point(fragment.position.x, fragment.position.y, fragColor);
+        point(fragmentShader(fragment));
     }
 }
 
@@ -161,12 +172,12 @@ int main() {
 
     std::vector<glm::vec3> vertexBufferObject = {
         {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
-        {-0.87f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f},
-        {0.87f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f},
+        {-0.87f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f},
+        {0.87f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f},
 
-        {0.0f, 1.0f,    -1.0f}, {0.0f, 1.0f, 0.0f},
-        {-0.87f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f},
-        {0.87f,  -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}
+        {0.0f, 1.0f,    -1.0f}, {1.0f, 1.0f, 0.0f},
+        {-0.87f, -0.5f, -1.0f}, {0.0f, 1.0f, 1.0f},
+        {0.87f,  -0.5f, -1.0f}, {1.0f, 0.0f, 1.0f}
     };
 
     while (running) {

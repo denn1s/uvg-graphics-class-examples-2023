@@ -9,9 +9,10 @@
 #include "print.h"
 #include "color.h"
 #include "shaders.h"
+#include "triangle.h"
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
+const int WINDOW_WIDTH = 1280;
+const int WINDOW_HEIGHT = 1024;
 
 SDL_Renderer* renderer;
 
@@ -36,101 +37,48 @@ void point(int x, int y, Color color) {
     SDL_RenderDrawPoint(renderer, x, y);
 }
 
-
-std::vector<Fragment> line(glm::vec3 A, glm::vec3 B) {
-    int x1 = A.x;
-    int y1 = A.y;
-    int x2 = B.x;
-    int y2 = B.y;
-    int dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
-    int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
-    int err = dx + dy, e2; /* error value e_xy */
-
-
-    std::vector<Fragment> lineFragments;
-
-    while (true) { /* loop */
-        lineFragments.push_back(Fragment{glm::ivec2(x1, y1)});
-        if (x1 == x2 && y1 == y2) break;
-        e2 = 2 * err;
-        if (e2 >= dy) { /* e_xy + e_x > 0 */
-            err += dy;
-            x1 += sx;
-        }
-        if (e2 <= dx) { /* e_xy + e_y < 0 */
-            err += dx;
-            y1 += sy;
-        }
-    }
-
-    return lineFragments;
-}
-
-std::vector<Fragment> triangle(glm::vec3 A, glm::vec3 B, glm::vec3 C) {
-    std::vector<Fragment> triangleFragments;
-    
-    std::vector<Fragment> line1 = line(A, B);
-    std::vector<Fragment> line2 = line(B, C);
-    std::vector<Fragment> line3 = line(C, A);
-
-    triangleFragments.insert(
-        triangleFragments.end(),
-        line1.begin(),
-        line1.end()
-    );
-
-    triangleFragments.insert(
-        triangleFragments.end(),
-        line2.begin(),
-        line2.end()
-    );
-
-    triangleFragments.insert(
-        triangleFragments.end(),
-        line3.begin(),
-        line3.end()
-    );
-
-    return triangleFragments;
-}
-
-std::vector<std::vector<glm::vec3>> primitiveAssembly(
-    const std::vector<glm::vec3>& transformedVertices
+std::vector<std::vector<Vertex>> primitiveAssembly(
+    const std::vector<Vertex>& transformedVertices
 ) {
-    std::vector<std::vector<glm::vec3>> groupedVertices;
+    std::vector<std::vector<Vertex>> groupedVertices;
 
     for (int i = 0; i < transformedVertices.size(); i += 3) {
-        std::vector<glm::vec3> triangle;
-        triangle.push_back(transformedVertices[i]);
-        triangle.push_back(transformedVertices[i+1]);
-        triangle.push_back(transformedVertices[i+2]);
+        std::vector<Vertex> vertexGroup;
+        vertexGroup.push_back(transformedVertices[i]);
+        vertexGroup.push_back(transformedVertices[i+1]);
+        vertexGroup.push_back(transformedVertices[i+2]);
         
-        groupedVertices.push_back(triangle);
+        groupedVertices.push_back(vertexGroup);
     }
 
     return groupedVertices;
 }
 
 
-void render(std::vector<glm::vec3> vertices) {
+void render(std::vector<glm::vec3> VBO) {
     // 1. Vertex Shader
     // vertex -> trasnformedVertices
     
-    std::vector<glm::vec3> transformedVertices;
-    for(glm::vec3 vertex : vertices) {
-        glm::vec3 transformedVertex = vertexShader(vertex, uniform);
+    std::vector<Vertex> transformedVertices;
+    
+    for (int i = 0; i < VBO.size(); i+=2) {
+        glm::vec3 v = VBO[i];
+        glm::vec3 c = VBO[i+1];
+
+        Vertex vertex = {v, Color(c.x, c.y, c.z)};
+        Vertex transformedVertex = vertexShader(vertex, uniform);
         transformedVertices.push_back(transformedVertex);
     }
 
 
     // 2. Primitive Assembly
     // transformedVertices -> triangles
-    std::vector<std::vector<glm::vec3>> triangles = primitiveAssembly(transformedVertices);
+    std::vector<std::vector<Vertex>> triangles = primitiveAssembly(transformedVertices);
 
     // 3. Rasterize
     // triangles -> Fragments
     std::vector<Fragment> fragments;
-    for (const std::vector<glm::vec3>& triangleVertices : triangles) {
+    for (const std::vector<Vertex>& triangleVertices : triangles) {
         std::vector<Fragment> rasterizedTriangle = triangle(
             triangleVertices[0],
             triangleVertices[1],
@@ -154,8 +102,14 @@ void render(std::vector<glm::vec3> vertices) {
 }
 
 
+float a = 3.14f / 3.0f;
+
 glm::mat4 createModelMatrix() {
-    return glm::mat4(1);
+    glm::mat4 transtation = glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(1.0f, 1.0f, 1.0f));
+    glm::mat4 rotation = glm::rotate(glm::mat4(1), glm::radians(a++), glm::vec3(0.0f, 1.0f, 0.0f));
+    
+    return transtation * scale * rotation;
 }
 
 glm::mat4 createViewMatrix() {
@@ -205,10 +159,14 @@ int main() {
     bool running = true;
     SDL_Event event;
 
-    std::vector<glm::vec3> vertices = {
-        {0.0f, 1.0f, 0.0f},
-        {-0.87f, -0.5f, 0.0f},
-        {0.87f,  -0.5f, 0.0f}
+    std::vector<glm::vec3> vertexBufferObject = {
+        {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
+        {-0.87f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f},
+        {0.87f,  -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f},
+
+        {0.0f, 1.0f,    -1.0f}, {0.0f, 1.0f, 0.0f},
+        {-0.87f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f},
+        {0.87f,  -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}
     };
 
     while (running) {
@@ -245,7 +203,7 @@ int main() {
 
 
         // Call our render function
-        render(vertices);
+        render(vertexBufferObject);
         // point(10, 10, Color{255, 255, 255});
 
 

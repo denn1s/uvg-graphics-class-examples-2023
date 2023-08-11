@@ -1,5 +1,21 @@
 #include <glm/glm.hpp>
 #include <iostream>
+#include "fragment.h"
+#include "color.h"
+
+
+// overload for Vertex
+void print(const Vertex& v) {
+    std::cout << "Vertex{" << std::endl;
+    std::cout << "  glm::vec3(" << v.position.x << ", " << v.position.y << ", " << v.position.z << ")" << std::endl;
+    std::cout << "  Color(" << static_cast<int>(v.color.r) << ", " << static_cast<int>(v.color.g) << ", " << static_cast<int>(v.color.b) << ")" << std::endl;
+    std::cout << "}" << std::endl;
+}
+
+// overload for Color
+void print(const Color& v) {
+    std::cout << "Color(" << static_cast<int>(v.r) << ", " << static_cast<int>(v.g) << ", " << static_cast<int>(v.b) << ")" << std::endl;
+}
 
 // overload for glm::vec3
 void print(const glm::vec3& v) {
